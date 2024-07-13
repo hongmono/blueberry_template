@@ -21,7 +21,8 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await FirebaseCloudMessagingManager.initialize();
+
+  FirebaseCloudMessagingManager.initialize();
 
   runApp(const ProviderScope(child: MyApp()));
 }

@@ -3,6 +3,7 @@ import 'package:blueberry_flutter_template/modules/core/storage/FlutterSecureSto
 import 'package:blueberry_flutter_template/modules/core/storage/StorageKeys.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -28,9 +29,29 @@ class FirebaseCloudMessagingManager {
       sound: true,
     );
 
-    final storage = PreferenceStorage();
-    final fcmToken = await FirebaseMessaging.instance.getToken();
-    storage.write(StorageKeys.fcmToken, fcmToken);
+    try {
+      String? token;
+
+      if (kIsWeb) {
+        token = await FirebaseMessaging.instance.getToken(
+          vapidKey:
+              'BEQthYLUnGpCx7bT4Pvukld8RCQemi6TKhTN6J0I4pjuTkY4QQ-PqkYenhizmvsYbM53RibV6OBYOtdx8M6GrWo',
+        );
+      } else {
+        token = await FirebaseMessaging.instance.getToken();
+      }
+
+      if (token == null) {
+        throw Exception('Failed to get FCM token');
+      }
+
+      debugPrint('FCM Token: $token');
+
+      final storage = PreferenceStorage();
+      storage.write(StorageKeys.fcmToken, token);
+    } catch (e) {
+      debugPrint('Failed initialize FCM]] $e');
+    }
 
     FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
       // TODO: If necessary send token to application server.
@@ -40,15 +61,26 @@ class FirebaseCloudMessagingManager {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    await LocalNotificationManager.initialize();
+    // await LocalNotificationManager.initialize();
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification == null) return;
 
-      LocalNotificationManager.showNotification({
-        'title': message.notification!.title,
-        'body': message.notification!.body,
-      });
+      // LocalNotificationManager.showNotification({
+      //   'title': message.notification!.title,
+      //   'body': message.notification!.body,
+      // });
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (message.notification == null) return;
+
+      print('A new onMessageOpenedApp event was published! ${message.data}');
+
+      // LocalNotificationManager.showNotification({
+      //   'title': message.notification!.title,
+      //   'body': message.notification!.body,
+      // });
     });
   }
 
